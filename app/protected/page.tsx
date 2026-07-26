@@ -24,7 +24,7 @@ export default async function ProtectedPage() {
           </p>
         </div>
 
-        <Link href="/">
+        <Link href="/" prefetch={false}>
           <Button variant="outline" size="sm">
             ← Back to Home
           </Button>
