@@ -1,5 +1,7 @@
+"use client"
+
 import * as React from "react"
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
+import { OrganizationSwitcher, UserButton, useAuth } from "@clerk/nextjs"
 
 import {
   Sidebar,
@@ -11,21 +13,25 @@ import {
 import { WorkflowNav } from "@/features/workflows/components/workflow-nav"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { isLoaded, isSignedIn } = useAuth()
+
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader className="flex flex-row items-center justify-between p-3 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:justify-center">
         <div className="group-data-[collapsible=icon]:hidden">
-          <OrganizationSwitcher
-            hidePersonal={false}
-            afterSelectOrganizationUrl="/"
-            afterCreateOrganizationUrl="/"
-            appearance={{
-              elements: {
-                organizationSwitcherTrigger:
-                  "focus:shadow-none focus:outline-none text-sidebar-foreground",
-              },
-            }}
-          />
+          {isLoaded && isSignedIn && (
+            <OrganizationSwitcher
+              hidePersonal={false}
+              afterSelectOrganizationUrl="/"
+              afterCreateOrganizationUrl="/"
+              appearance={{
+                elements: {
+                  organizationSwitcherTrigger:
+                    "focus:shadow-none focus:outline-none text-sidebar-foreground",
+                },
+              }}
+            />
+          )}
         </div>
         <SidebarTrigger />
       </SidebarHeader>
@@ -35,16 +41,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter className="group-data-[collapsible=icon]:items-center">
-        <UserButton
-          appearance={{
-            elements: {
-              rootBox: "w-full",
-              userButtonTrigger:
-                "w-full justify-start group-data-[collapsible=icon]:justify-center",
-              userButtonOuterIdentifier: "group-data-[collapsible=icon]:hidden",
-            },
-          }}
-        />
+        {isLoaded && isSignedIn && (
+          <UserButton
+            appearance={{
+              elements: {
+                rootBox: "w-full",
+                userButtonTrigger:
+                  "w-full justify-start group-data-[collapsible=icon]:justify-center",
+                userButtonOuterIdentifier: "group-data-[collapsible=icon]:hidden",
+              },
+            }}
+          />
+        )}
       </SidebarFooter>
     </Sidebar>
   )
