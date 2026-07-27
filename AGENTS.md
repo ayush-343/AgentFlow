@@ -9,3 +9,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 Derive database types from the Drizzle schema - never hand-write custom or partial shapes for table rows. Export 'typeof table.$inferSelect' (and '$inferInsert' when needed) from 'lib/schemats' and import it. When a consumer needs only some columns, narrow with 'Pick<Row, ...>' / 'Omit<Row, ...>' rather than redeclaring a literal type. Don't add an insert type where 'db.insert(...).values()' already enforces the shape.
 
+
+# JSX Entity Escaping
+
+Always escape unescaped entities like apostrophes (`'`), quotes (`"`), and angle brackets in JSX text children using HTML entities (`&apos;`, `&quot;`, `&lsquo;`, `&rsquo;`) or string expressions (e.g. `{"'"}`, `{"doesn't"}`) to prevent `react/no-unescaped-entities` errors.
+
