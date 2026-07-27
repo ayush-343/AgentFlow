@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Workflow } from "lucide-react"
+import { Plus, Workflow as WorkflowIcon } from "lucide-react"
 
 import {
   SidebarGroup,
@@ -20,21 +20,24 @@ import {
 } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 
-const WORKFLOWS = [
-  { title: "dominant-wasp" },
-  { title: "honest-reindeer" },
-  { title: "expected-llama" },
-  { title: "essential-ocelot" },
-  { title: "creepy-echidna" },
-  { title: "eastern-silkworm" },
-  { title: "cultural-lion" },
-  { title: "proud-weasel" },
-  { title: "regional-bonobo" },
-]
+import type { Workflow } from "@/lib/db/schema"
+import { generateSlug } from "@/features/workflows/lib/generate-slug"
 
-export function WorkflowNav() {
+interface WorkflowNavProps {
+  workflows: Pick<Workflow, "id" | "name">[]
+  createWorkflowAction: (name: string) => Promise<void>
+}
+
+export function WorkflowNav({
+  workflows,
+  createWorkflowAction,
+}: WorkflowNavProps) {
   const { state } = useSidebar()
-  const [selectedWorkflow, setSelectedWorkflow] = React.useState("dominant-wasp")
+
+  const handleCreateWorkflow = () => {
+    const name = generateSlug()
+    createWorkflowAction(name)
+  }
 
   if (state === "collapsed") {
     return (
@@ -44,14 +47,17 @@ export function WorkflowNav() {
             <Popover>
               <PopoverTrigger asChild>
                 <SidebarMenuButton tooltip="Workflows">
-                  <Workflow className="size-4 shrink-0" />
+                  <WorkflowIcon className="size-4 shrink-0" />
                   <span className="sr-only">Workflows</span>
                 </SidebarMenuButton>
               </PopoverTrigger>
               <PopoverContent side="right" align="start" className="w-56 p-2">
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton className="gap-2 font-normal">
+                    <SidebarMenuButton
+                      className="gap-2 font-normal"
+                      onClick={handleCreateWorkflow}
+                    >
                       <Plus className="size-4" />
                       <span>New workflow</span>
                     </SidebarMenuButton>
@@ -59,14 +65,10 @@ export function WorkflowNav() {
                 </SidebarMenu>
                 <Separator className="my-1" />
                 <SidebarMenu className="gap-y-0.5">
-                  {WORKFLOWS.map((workflow) => (
-                    <SidebarMenuItem key={workflow.title}>
-                      <SidebarMenuButton
-                        isActive={selectedWorkflow === workflow.title}
-                        onClick={() => setSelectedWorkflow(workflow.title)}
-                        className="h-9 font-normal px-3"
-                      >
-                        <span>{workflow.title}</span>
+                  {workflows.map((workflow) => (
+                    <SidebarMenuItem key={workflow.id}>
+                      <SidebarMenuButton className="h-9 font-normal px-3">
+                        <span>{workflow.name}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -84,22 +86,23 @@ export function WorkflowNav() {
       <SidebarGroupLabel className="text-xs font-medium text-sidebar-foreground/70">
         Workflows
       </SidebarGroupLabel>
-      <SidebarGroupAction title="Add workflow">
+      <SidebarGroupAction
+        title="Add workflow"
+        onClick={handleCreateWorkflow}
+      >
         <Plus className="size-4" />
         <span className="sr-only">Add workflow</span>
       </SidebarGroupAction>
 
       <SidebarGroupContent className="mt-1">
         <SidebarMenu className="gap-y-0.5">
-          {WORKFLOWS.map((workflow) => (
-            <SidebarMenuItem key={workflow.title}>
+          {workflows.map((workflow) => (
+            <SidebarMenuItem key={workflow.id}>
               <SidebarMenuButton
-                isActive={selectedWorkflow === workflow.title}
-                tooltip={workflow.title}
-                onClick={() => setSelectedWorkflow(workflow.title)}
+                tooltip={workflow.name}
                 className="h-9 font-normal px-3"
               >
-                <span>{workflow.title}</span>
+                <span>{workflow.name}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
