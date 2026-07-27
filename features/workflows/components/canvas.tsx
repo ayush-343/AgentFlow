@@ -1,30 +1,54 @@
 "use client"
 
-import { useCallback, useState, useSyncExternalStore } from "react"
+import { useCallback, useSyncExternalStore } from "react"
 import { useTheme } from "next-themes"
 import {
   addEdge,
-  applyEdgeChanges,
-  applyNodeChanges,
-  Background,
-  BackgroundVariant,
-  ConnectionLineType,
   Controls,
-  MiniMap,
   ReactFlow,
+  useEdgesState,
+  useNodesState,
+  ConnectionLineType,
   type ColorMode,
+  type Connection,
   type Edge,
-  type Node,
-  type OnConnect,
-  type OnEdgesChange,
-  type OnNodesChange,
+  NodeTypes,
 } from "@xyflow/react"
+
+import { StepNode } from "@/features/workflows/components/step-node"
+import type { StepNodeType } from "@/features/workflows/nodes/node-registry"
 
 import "@xyflow/react/dist/style.css"
 
-const emptySubscribe = () => () => {}
+const nodeTypes: NodeTypes = { step: StepNode }
 
-function useIsMounted() {
+const initialNodes: StepNodeType[] = [
+  {
+    id: "start",
+    type: "step",
+    position: { x: 0, y: 0 },
+    data: { type: "start", kind: "trigger", title: "Start", values: {} },
+  },
+  {
+    id: "open-url",
+    type: "step",
+    position: { x: 300, y: 0 },
+    data: {
+      type: "open-url",
+      kind: "action",
+      title: "Open URL",
+      values: { url: "" },
+    },
+  },
+]
+
+const initialEdges: Edge[] = []
+
+const emptySubscribe = () => () => { }
+
+// False during server render and hydration, true after mount. Keeps the
+// server and initial client render identical to avoid a hydration mismatch.
+function useMounted() {
   return useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -32,74 +56,36 @@ function useIsMounted() {
   )
 }
 
-const initialNodes: Node[] = [
-  {
-    id: "1",
-    type: "input",
-    position: { x: 100, y: 150 },
-    data: { label: "Trigger Node" },
-  },
-  {
-    id: "2",
-    position: { x: 350, y: 150 },
-    data: { label: "Action Node" },
-  },
-  {
-    id: "3",
-    type: "output",
-    position: { x: 600, y: 150 },
-    data: { label: "Output Node" },
-  },
-]
-
-const initialEdges: Edge[] = [
-  { id: "e1-2", source: "1", target: "2", animated: true },
-  { id: "e2-3", source: "2", target: "3" },
-]
-
 export function Canvas() {
   const { resolvedTheme } = useTheme()
-  const mounted = useIsMounted()
-  const [nodes, setNodes] = useState<Node[]>(initialNodes)
-  const [edges, setEdges] = useState<Edge[]>(initialEdges)
+  const mounted = useMounted()
+  const colorMode: ColorMode = mounted
+    ? (resolvedTheme as ColorMode) ?? "light"
+    : "light"
+  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
+  const onConnect = useCallback(
+    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
+    [setEdges]
   )
-  const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
-  )
-  const onConnect: OnConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge(connection, eds)),
-    []
-  )
-
-  const colorMode: ColorMode =
-    mounted && (resolvedTheme === "dark" || resolvedTheme === "light")
-      ? resolvedTheme
-      : "light"
 
   return (
     <div className="size-full">
       <ReactFlow
+        nodeTypes={nodeTypes}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        fitView
         colorMode={colorMode}
+        fitView
         connectionLineType={ConnectionLineType.SmoothStep}
-        connectionLineStyle={{
-          stroke: "var(--border)",
-        }}
+        connectionLineStyle={{ stroke: "var(--border)" }}
         defaultEdgeOptions={{
           type: "smoothstep",
-          style: {
-            stroke: "var(--border)",
-          },
+          style: { stroke: "var(--border)" },
         }}
         style={
           {
@@ -108,10 +94,9 @@ export function Canvas() {
             "--xy-connectionline-stroke-width": 2,
           } as React.CSSProperties
         }
+        maxZoom={1}
       >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls />
-        <MiniMap />
       </ReactFlow>
     </div>
   )
