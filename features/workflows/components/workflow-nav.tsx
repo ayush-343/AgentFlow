@@ -43,13 +43,18 @@ export function WorkflowNav({
   }
 
   if (state === "collapsed") {
+    const isAnyWorkflowActive = pathname?.startsWith("/workflows/")
+
     return (
       <SidebarGroup>
         <SidebarMenu>
           <SidebarMenuItem>
             <Popover>
               <PopoverTrigger asChild>
-                <SidebarMenuButton tooltip="Workflows">
+                <SidebarMenuButton
+                  tooltip="Workflows"
+                  isActive={isAnyWorkflowActive}
+                >
                   <WorkflowIcon className="size-4 shrink-0" />
                   <span className="sr-only">Workflows</span>
                 </SidebarMenuButton>
@@ -70,14 +75,15 @@ export function WorkflowNav({
                 <SidebarMenu className="gap-y-0.5">
                   {workflows.map((workflow) => {
                     const href = `/workflows/${workflow.id}`
-                    const isActive = pathname === href
+                    const isActive =
+                      pathname === href || pathname?.startsWith(`${href}/`)
 
                     return (
                       <SidebarMenuItem key={workflow.id}>
                         <SidebarMenuButton
                           asChild
                           isActive={isActive}
-                          className="h-9 font-normal px-3"
+                          className="h-9 px-3 font-normal"
                         >
                           <Link href={href}>
                             <span>{workflow.name}</span>
@@ -100,10 +106,7 @@ export function WorkflowNav({
       <SidebarGroupLabel className="text-xs font-medium text-sidebar-foreground/70">
         Workflows
       </SidebarGroupLabel>
-      <SidebarGroupAction
-        title="Add workflow"
-        onClick={handleCreateWorkflow}
-      >
+      <SidebarGroupAction title="Add workflow" onClick={handleCreateWorkflow}>
         <Plus className="size-4" />
         <span className="sr-only">Add workflow</span>
       </SidebarGroupAction>
@@ -112,7 +115,8 @@ export function WorkflowNav({
         <SidebarMenu className="gap-y-0.5">
           {workflows.map((workflow) => {
             const href = `/workflows/${workflow.id}`
-            const isActive = pathname === href
+            const isActive =
+              pathname === href || pathname?.startsWith(`${href}/`)
 
             return (
               <SidebarMenuItem key={workflow.id}>
@@ -120,7 +124,7 @@ export function WorkflowNav({
                   asChild
                   isActive={isActive}
                   tooltip={workflow.name}
-                  className="h-9 font-normal px-3"
+                  className="h-9 px-3 font-normal"
                 >
                   <Link href={href}>
                     <span>{workflow.name}</span>

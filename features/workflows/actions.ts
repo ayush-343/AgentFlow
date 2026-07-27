@@ -1,20 +1,20 @@
-"use server";
+"use server"
 
-import { auth } from "@clerk/nextjs/server";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
-import { createWorkflow } from "@/features/workflows/data";
+import { createWorkflow } from "@/features/workflows/data"
 
 export async function createWorkflowAction(name: string) {
-  const { orgId } = await auth();
+  const { orgId } = await auth()
 
   if (!orgId) {
-    throw new Error("Unauthorized");
+    throw new Error("Unauthorized")
   }
 
-  const workflow = await createWorkflow(orgId, name);
+  const workflow = await createWorkflow(orgId, name)
 
-  revalidatePath("/", "layout");
-  redirect(`/workflows/${workflow.id}`);
+  revalidatePath("/", "layout")
+  redirect(`/workflows/${workflow.id}`)
 }

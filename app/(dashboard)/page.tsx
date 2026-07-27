@@ -15,7 +15,10 @@ export default function Home() {
     <div className="flex h-screen w-full items-center justify-center p-6">
       <Empty className="border-0">
         <EmptyHeader>
-          <EmptyMedia variant="icon" className="size-12 rounded-xl bg-muted/80 [&_svg]:size-6">
+          <EmptyMedia
+            variant="icon"
+            className="size-12 rounded-xl bg-muted/80 [&_svg]:size-6"
+          >
             <Workflow />
           </EmptyMedia>
           <EmptyTitle className="text-xl font-semibold">
@@ -28,7 +31,7 @@ export default function Home() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="mt-2">
-          <Button size="lg" className="rounded-lg font-medium px-4">
+          <Button size="lg" className="rounded-lg px-4 font-medium">
             <Plus className="size-4" />
             New workflow
           </Button>
@@ -37,4 +40,3 @@ export default function Home() {
     </div>
   )
 }
-

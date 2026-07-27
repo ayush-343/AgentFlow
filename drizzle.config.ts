@@ -1,14 +1,17 @@
-import { config } from "dotenv";
-import { defineConfig } from "drizzle-kit";
+import { config } from "dotenv"
+import { defineConfig } from "drizzle-kit"
 
 // Neon connection strings live in .env.local (Next.js convention).
-config({ path: ".env.local" });
+config({ path: ".env.local" })
 
 // Migrations/DDL should run over a direct (unpooled) connection.
-const migrationUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+const migrationUrl =
+  process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL
 
 if (!migrationUrl) {
-  throw new Error("DATABASE_URL_UNPOOLED (or DATABASE_URL) is not set in .env.local");
+  throw new Error(
+    "DATABASE_URL_UNPOOLED (or DATABASE_URL) is not set in .env.local"
+  )
 }
 
 export default defineConfig({
@@ -21,4 +24,4 @@ export default defineConfig({
   casing: "snake_case",
   verbose: true,
   strict: true,
-});
+})

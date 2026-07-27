@@ -1,1 +1,1 @@
-export * from "./generate-slug";
+export * from "./generate-slug"

@@ -7,19 +7,19 @@ export default async function ProtectedPage() {
   const user = await currentUser()
 
   return (
-    <div className="flex min-h-svh flex-col p-6 gap-6 max-w-xl mx-auto">
+    <div className="mx-auto flex min-h-svh max-w-xl flex-col gap-6 p-6">
       <header className="border-b pb-4">
         <h1 className="text-2xl font-bold">Protected Test Page</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           This route is protected by Clerk authentication.
         </p>
       </header>
 
       <main className="space-y-4">
-        <div className="rounded-lg border p-4 bg-muted/40 space-y-2">
-          <h2 className="font-semibold text-sm">Authenticated User Info</h2>
-          <p className="text-sm font-mono">ID: {user?.id}</p>
-          <p className="text-sm font-mono">
+        <div className="space-y-2 rounded-lg border bg-muted/40 p-4">
+          <h2 className="text-sm font-semibold">Authenticated User Info</h2>
+          <p className="font-mono text-sm">ID: {user?.id}</p>
+          <p className="font-mono text-sm">
             Email: {user?.emailAddresses[0]?.emailAddress}
           </p>
         </div>

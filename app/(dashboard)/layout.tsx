@@ -9,7 +9,9 @@ export default function DashboardLayout({
   return (
     <SidebarProvider className="h-svh">
       <AppSidebar />
-      <SidebarInset className=" min-h-0 overflow-hidden border shadow-none!-0">{children}</SidebarInset>
+      <SidebarInset className="shadow-none!-0 min-h-0 overflow-hidden border">
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   )
 }
