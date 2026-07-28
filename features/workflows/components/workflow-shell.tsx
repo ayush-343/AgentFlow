@@ -15,7 +15,7 @@ interface WorkflowShellProps {
   workflowId: string
 }
 
-export function WorkflowShell({ workflowId: _workflowId }: WorkflowShellProps) {
+export function WorkflowShell({ workflowId }: WorkflowShellProps) {
   const [activeRun, setActiveRun] = useState<{
     runId: string
     publicAccessToken: string
@@ -38,7 +38,8 @@ export function WorkflowShell({ workflowId: _workflowId }: WorkflowShellProps) {
             ) : (
               <div className="flex size-full items-center justify-center p-4">
                 <span className="text-sm font-medium text-muted-foreground">
-                  No active run logs. Click &quot;Run&quot; to trigger workflow task.
+                  No active run logs. Click &quot;Run&quot; to trigger workflow
+                  task.
                 </span>
               </div>
             )}
@@ -47,7 +48,7 @@ export function WorkflowShell({ workflowId: _workflowId }: WorkflowShellProps) {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize="16rem" minSize="14rem" maxSize="36rem">
-        <RightSidebar onRunTriggered={setActiveRun} />
+        <RightSidebar workflowId={workflowId} onRunTriggered={setActiveRun} />
       </ResizablePanel>
     </ResizablePanelGroup>
   )

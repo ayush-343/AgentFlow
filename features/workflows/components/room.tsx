@@ -1,56 +1,57 @@
-"use client";
+"use client"
 
-import { ReactNode } from "react";
+import { ReactNode } from "react"
 import {
-    LiveblocksProvider,
-    RoomProvider,
-    ClientSideSuspense,
-} from "@liveblocks/react/suspense";
-import { Spinner } from "@/components/ui/spinner";
+  LiveblocksProvider,
+  RoomProvider,
+  ClientSideSuspense,
+} from "@liveblocks/react/suspense"
+import { Spinner } from "@/components/ui/spinner"
 
 interface RoomProps {
-    roomId: string;
-    children: ReactNode;
+  roomId: string
+  children: ReactNode
 }
 
 export function Room({ roomId, children }: RoomProps) {
-    return (
-        <LiveblocksProvider
-            throttle={16}
-            authEndpoint="/api/liveblocks/auth"
-            resolveUsers={async ({ userIds }) => {
-                try {
-                    const response = await fetch("/api/liveblocks/users", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ userIds }),
-                    });
+  return (
+    <LiveblocksProvider
+      throttle={16}
+      authEndpoint="/api/liveblocks/auth"
+      resolveUsers={async ({ userIds }) => {
+        try {
+          const response = await fetch("/api/liveblocks/users", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userIds }),
+          })
 
-                    if (!response.ok) {
-                        return undefined;
-                    }
+          if (!response.ok) {
+            return undefined
+          }
 
-
-                    return await response.json();
-                } catch {
-                    return undefined;
-                }
-            }}>
-            <RoomProvider id={roomId}>
-                <ClientSideSuspense
-                    fallback={
-                        <div className="flex items-center justify-center min-h-svh">
-                            <Spinner
-                                className="size-8 text-muted-foreground"
-                                aria-label="Loading room…"
-                            />
-                        </div>
-                    }>
-                    {children}
-                </ClientSideSuspense>
-            </RoomProvider>
-        </LiveblocksProvider>
-    );
+          return await response.json()
+        } catch {
+          return undefined
+        }
+      }}
+    >
+      <RoomProvider id={roomId}>
+        <ClientSideSuspense
+          fallback={
+            <div className="flex min-h-svh items-center justify-center">
+              <Spinner
+                className="size-8 text-muted-foreground"
+                aria-label="Loading room…"
+              />
+            </div>
+          }
+        >
+          {children}
+        </ClientSideSuspense>
+      </RoomProvider>
+    </LiveblocksProvider>
+  )
 }

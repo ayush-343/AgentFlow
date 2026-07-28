@@ -41,10 +41,12 @@ AgentFlow/
 │   └── workflows/              # Workflow domain logic & components
 │       ├── actions.ts          # Server actions for workflow CRUD
 │       ├── components/         # Canvas, Step Node, Room, Workflow Shell, Realtime Logs
+│       ├── lib/                # Graph validation & topological sorting engine
 │       ├── nodes/              # Node registry & custom step node definitions
+│       ├── tasks/              # Trigger.dev background task definitions (run-workflow)
 │       └── data.ts             # Mock & database query helpers
 ├── db/                         # Drizzle database schemas & migrations
-├── trigger/                    # Trigger.dev background task definitions
+├── trigger.config.ts           # Trigger.dev background task configuration
 └── liveblocks.config.ts        # Liveblocks room & presence configuration
 ```
 
@@ -98,7 +100,12 @@ TRIGGER_SECRET_KEY=tr_dev_...
    npm run dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+4. **Start the Trigger.dev background task worker** (in a separate terminal):
+   ```bash
+   npx -y trigger.dev@latest dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 

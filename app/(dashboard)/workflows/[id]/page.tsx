@@ -29,7 +29,7 @@ export default async function Page({
     },
     metadata: {
       title: workflow.name,
-    }
+    },
   })
 
   return (
@@ -40,5 +40,3 @@ export default async function Page({
     </ReactFlowProvider>
   )
 }
-
-

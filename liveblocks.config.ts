@@ -5,11 +5,11 @@ declare global {
     UserMeta: {
       id: string
       info: {
-        name: string;
-        avatar?: string;
+        name: string
+        avatar?: string
       }
     }
   }
 }
 
-export { }
+export {}

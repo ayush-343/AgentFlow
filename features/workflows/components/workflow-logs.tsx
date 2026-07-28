@@ -2,7 +2,13 @@
 
 import { useEffect, useRef } from "react"
 import { useRealtimeRun } from "@trigger.dev/react-hooks"
-import { CheckCircle2Icon, ClockIcon, AlertCircleIcon, Loader2Icon, TerminalIcon } from "lucide-react"
+import {
+  CheckCircle2Icon,
+  ClockIcon,
+  AlertCircleIcon,
+  Loader2Icon,
+  TerminalIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -51,7 +57,9 @@ export function WorkflowLogs({ runId, publicAccessToken }: WorkflowLogsProps) {
       hasCompletedRef.current = true
       toast.error(`Task execution failed`, {
         id: toastIdRef.current,
-        description: run.error ? JSON.stringify(run.error) : "An error occurred during execution.",
+        description: run.error
+          ? JSON.stringify(run.error)
+          : "An error occurred during execution.",
       })
     } else if (run.status === "EXECUTING") {
       toast.loading(`Task is executing...`, {
@@ -82,14 +90,20 @@ export function WorkflowLogs({ runId, publicAccessToken }: WorkflowLogsProps) {
     switch (status) {
       case "COMPLETED":
         return (
-          <Badge variant="outline" className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          >
             <CheckCircle2Icon className="size-3.5" />
             COMPLETED
           </Badge>
         )
       case "EXECUTING":
         return (
-          <Badge variant="outline" className="gap-1.5 border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+          >
             <Loader2Icon className="size-3.5 animate-spin" />
             EXECUTING
           </Badge>
@@ -97,7 +111,10 @@ export function WorkflowLogs({ runId, publicAccessToken }: WorkflowLogsProps) {
       case "QUEUED":
       case "WAITING_FOR_DEPLOY":
         return (
-          <Badge variant="outline" className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          >
             <ClockIcon className="size-3.5" />
             {status}
           </Badge>
@@ -117,7 +134,7 @@ export function WorkflowLogs({ runId, publicAccessToken }: WorkflowLogsProps) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 p-4 overflow-y-auto font-mono text-xs">
+    <div className="flex h-full flex-col gap-3 overflow-y-auto p-4 font-mono text-xs">
       <div className="flex items-center justify-between border-b pb-2">
         <div className="flex items-center gap-2">
           <TerminalIcon className="size-4 text-muted-foreground" />
@@ -140,27 +157,27 @@ export function WorkflowLogs({ runId, publicAccessToken }: WorkflowLogsProps) {
             <div className="mb-1.5 font-sans font-medium text-muted-foreground">
               Input Payload
             </div>
-            <pre className="whitespace-pre-wrap break-all text-muted-foreground">
+            <pre className="break-all whitespace-pre-wrap text-muted-foreground">
               {JSON.stringify(run.payload, null, 2)}
             </pre>
           </div>
         )}
 
         {run.output ? (
-          <div className="rounded-md border bg-emerald-500/5 border-emerald-500/20 p-3">
+          <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3">
             <div className="mb-1.5 font-sans font-medium text-emerald-600 dark:text-emerald-400">
               Output Result
             </div>
-            <pre className="whitespace-pre-wrap break-all text-emerald-700 dark:text-emerald-300">
+            <pre className="break-all whitespace-pre-wrap text-emerald-700 dark:text-emerald-300">
               {JSON.stringify(run.output, null, 2)}
             </pre>
           </div>
         ) : run.error ? (
-          <div className="rounded-md border bg-destructive/10 border-destructive/20 p-3">
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3">
             <div className="mb-1.5 font-sans font-medium text-destructive">
               Error
             </div>
-            <pre className="whitespace-pre-wrap break-all text-destructive">
+            <pre className="break-all whitespace-pre-wrap text-destructive">
               {JSON.stringify(run.error, null, 2)}
             </pre>
           </div>
