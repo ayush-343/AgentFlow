@@ -1,19 +1,25 @@
-import { logger, task } from "@trigger.dev/sdk"
 import toposort from "toposort"
+import { logger, task } from "@trigger.dev/sdk"
+import { Stagehand } from "@browserbasehq/stagehand"
+import { NodeExecutors } from "../nodes/node-executors"
 
 import { getWorkflow } from "@/features/workflows/data"
 
+// The Trigger.dev task the Run button fires. It loads the saved graph, works out
+// what order the nodes should run in, and walks them. For now each node just
+// announces itself — real execution (per-node executors, live progress, browser
+// sessions) gets layered on from here.
 export const runWorkflowTask = task({
   id: "run-workflow",
   run: async ({ workflowId, orgId }: { workflowId: string; orgId: string }) => {
-    logger.info("Starting workflow", { workflowId, orgId })
     const workflow = await getWorkflow(orgId, workflowId)
-
     if (!workflow?.graph) throw new Error(`Workflow ${workflowId} has no graph`)
-    const { nodes, edges } = workflow.graph
 
+    const { nodes, edges } = workflow.graph
     const byId = new Map(nodes.map((n) => [n.id, n]))
 
+    // Run only connected nodes — anything touching an edge. Orphans dropped on
+    // the canvas are skipped. toposort orders them and throws on a cycle.
     const connected = new Set(edges.flatMap((e) => [e.source, e.target]))
     const order = toposort
       .array(
@@ -24,12 +30,38 @@ export const runWorkflowTask = task({
 
     logger.log(`Running workflow ${workflow.name}`, { steps: order.length })
 
+
+    let stagehand: Stagehand | undefined
+    const getStagehand = async () => {
+      if (stagehand) return stagehand
+      stagehand = new Stagehand(
+        {
+          env: "BROWSERBASE",
+          apiKey: process.env.BROWSERBASE_API_KEY,
+          model: "google/gemini-2.5-flash",
+          disablePino: true,
+          // logging: true,
+
+        }
+      )
+      await stagehand.init()
+      return stagehand
+    }
+
     for (const id of order) {
       const node = byId.get(id)!
       logger.log(`Running step: ${node.data.title}`)
       // TODO: actually execute the node instead of just logging it, and report
       // its progress so the UI can watch the run live.
+      const executor = NodeExecutors[node.data.type]
+      if (executor) await executor({
+        values: node.data.values,
+        getStagehand
+      })
     }
+
+    await stagehand?.close()
+
     return { steps: order.length }
   },
 })

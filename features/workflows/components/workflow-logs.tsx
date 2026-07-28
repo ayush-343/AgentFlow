@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
-import type { helloWorldTask } from "@/trigger/example"
+import type { runWorkflowTask } from "@/features/workflows/tasks/run-workflow"
 
 interface WorkflowLogsProps {
   runId: string
@@ -23,7 +23,7 @@ export function WorkflowLogs({ runId, publicAccessToken }: WorkflowLogsProps) {
   const toastIdRef = useRef<string | number | null>(null)
   const hasCompletedRef = useRef<boolean>(false)
 
-  const { run, error } = useRealtimeRun<typeof helloWorldTask>(runId, {
+  const { run, error } = useRealtimeRun<typeof runWorkflowTask>(runId, {
     accessToken: publicAccessToken,
   })
 
