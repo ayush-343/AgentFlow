@@ -28,6 +28,7 @@ export async function AppSidebar({
               hidePersonal={false}
               afterSelectOrganizationUrl="/"
               afterCreateOrganizationUrl="/"
+              afterLeaveOrganizationUrl="/"
               appearance={{
                 elements: {
                   organizationSwitcherTrigger:
