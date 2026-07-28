@@ -30,6 +30,7 @@ import {
   runWorkflowAction,
 } from "@/features/workflows/actions"
 import { validateGraph } from "../lib/validate-graph"
+import { useUpstreamConnections } from "@/features/workflows/hooks"
 import {
   nodeRegistry,
   type NodeDefinition,
@@ -51,6 +52,7 @@ import {
 // The accent-colored icon chip, mirroring the node on the canvas.
 function NodeIcon({ type, className }: { type: NodeType; className?: string }) {
   const def = nodeRegistry[type]
+  if (!def) return null
   const Icon = def.icon
   return (
     <span
@@ -96,10 +98,12 @@ function Field({
   field,
   value,
   onChange,
+  onFocus,
 }: {
   field: NodeField
   value: string
   onChange: (value: string) => void
+  onFocus?: () => void
 }) {
   if (field.multiline) {
     return (
@@ -107,6 +111,7 @@ function Field({
         id={field.key}
         value={value}
         placeholder={field.placeholder}
+        onFocus={onFocus}
         onChange={(e) => onChange(e.target.value)}
       />
     )
@@ -117,6 +122,7 @@ function Field({
       id={field.key}
       value={value}
       placeholder={field.placeholder}
+      onFocus={onFocus}
       onChange={(e) => onChange(e.target.value)}
     />
   )
@@ -125,6 +131,12 @@ function Field({
 // The Editor tab: one input per field on the selected node, or an empty state.
 function Inspector({ node }: { node: StepNodeType | undefined }) {
   const { updateNodeData } = useReactFlow<StepNodeType>()
+  const upstreamOutputs = useUpstreamConnections(node)
+  const [focusedFieldKey, setFocusedFieldKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    setFocusedFieldKey(null)
+  }, [node?.id])
 
   if (!node) {
     return (
@@ -137,31 +149,75 @@ function Inspector({ node }: { node: StepNodeType | undefined }) {
   const { type, title, values } = node.data
   const def: NodeDefinition = nodeRegistry[type]
 
+  const handleChipClick = (token: string) => {
+    const targetKey =
+      focusedFieldKey && def.fields.some((f) => f.key === focusedFieldKey)
+        ? focusedFieldKey
+        : def.fields[0]?.key
+
+    if (!targetKey) return
+
+    const currentValue = values[targetKey] ?? ""
+    const newValue = currentValue ? `${currentValue} ${token}` : token
+
+    updateNodeData(node.id, {
+      values: {
+        ...values,
+        [targetKey]: newValue,
+      },
+    })
+  }
+
   return (
     <Section title={title} icon={<NodeIcon type={type} />}>
-      <div className="flex flex-col gap-3 p-3">
-        {def.fields.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No properties</p>
-        ) : (
-          def.fields.map((field) => (
-            <div key={field.key} className="flex flex-col gap-1.5">
-              <Label htmlFor={field.key} className="text-xs">
-                {field.label}
-                {field.required && (
-                  <span className="ml-0.5 text-destructive">*</span>
-                )}
-              </Label>
-              <Field
-                field={field}
-                value={values[field.key] ?? ""}
-                onChange={(value) => {
-                  updateNodeData(node.id, {
-                    values: { ...values, [field.key]: value },
-                  })
-                }}
-              />
+      <div className="flex flex-col gap-4 p-3">
+        <div className="flex flex-col gap-3">
+          {def.fields.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No properties</p>
+          ) : (
+            def.fields.map((field) => (
+              <div key={field.key} className="flex flex-col gap-1.5">
+                <Label htmlFor={field.key} className="text-xs">
+                  {field.label}
+                  {field.required && (
+                    <span className="ml-0.5 text-destructive">*</span>
+                  )}
+                </Label>
+                <Field
+                  field={field}
+                  value={values[field.key] ?? ""}
+                  onFocus={() => setFocusedFieldKey(field.key)}
+                  onChange={(value) => {
+                    setFocusedFieldKey(field.key)
+                    updateNodeData(node.id, {
+                      values: { ...values, [field.key]: value },
+                    })
+                  }}
+                />
+              </div>
+            ))
+          )}
+        </div>
+
+        {upstreamOutputs.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-border pt-3">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Connections
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
+              {upstreamOutputs.map((output) => (
+                <button
+                  key={`${output.nodeId}-${output.path}`}
+                  type="button"
+                  onClick={() => handleChipClick(output.token)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground shadow-2xs hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                >
+                  <NodeIcon type={output.type} className="size-4 rounded-xs [&_svg]:size-2.5" />
+                  <span>{output.label}</span>
+                </button>
+              ))}
             </div>
-          ))
+          </div>
         )}
       </div>
     </Section>

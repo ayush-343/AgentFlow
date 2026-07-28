@@ -1,12 +1,14 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth as clerkAuth } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import { ReactFlowProvider } from "@xyflow/react"
+import { auth as triggerAuth } from "@trigger.dev/sdk"
 
 import { getWorkflow } from "@/features/workflows/data"
 import { liveblocks } from "@/lib/liveblocks"
 
 import { Room } from "@/features/workflows/components/room"
 import { WorkflowShell } from "@/features/workflows/components/workflow-shell"
+import { WorkflowRunsProvider } from "@/features/workflows/components/workflow-runs-provider"
 
 export default async function Page({
   params,
@@ -14,7 +16,7 @@ export default async function Page({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { orgId } = await auth()
+  const { orgId } = await clerkAuth()
 
   if (!orgId) notFound()
 
@@ -32,10 +34,24 @@ export default async function Page({
     },
   })
 
+  const publicAccessToken = await triggerAuth.createPublicToken({
+    scopes: {
+      read: {
+        tags: [`workflow:${id}`],
+      },
+    },
+    expirationTime: "1h",
+  })
+
   return (
     <ReactFlowProvider>
       <Room roomId={id}>
-        <WorkflowShell workflowId={id} />
+        <WorkflowRunsProvider
+          workflowId={id}
+          publicAccessToken={publicAccessToken}
+        >
+          <WorkflowShell workflowId={id} />
+        </WorkflowRunsProvider>
       </Room>
     </ReactFlowProvider>
   )

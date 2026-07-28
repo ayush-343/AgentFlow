@@ -1,9 +1,15 @@
 import toposort from "toposort"
-import { logger, task } from "@trigger.dev/sdk"
+import { logger, metadata, task } from "@trigger.dev/sdk"
 import { Stagehand } from "@browserbasehq/stagehand"
 import { NodeExecutors } from "../nodes/node-executors"
+import { interpolate } from "../lib"
 
 import { getWorkflow } from "@/features/workflows/data"
+
+export type RunStep = {
+  id: string
+  status: "pending" | "running" | "done" | "failed"
+}
 
 // The Trigger.dev task the Run button fires. It loads the saved graph, works out
 // what order the nodes should run in, and walks them. For now each node just
@@ -30,38 +36,62 @@ export const runWorkflowTask = task({
 
     logger.log(`Running workflow ${workflow.name}`, { steps: order.length })
 
-
     let stagehand: Stagehand | undefined
     const getStagehand = async () => {
       if (stagehand) return stagehand
-      stagehand = new Stagehand(
-        {
-          env: "BROWSERBASE",
-          apiKey: process.env.BROWSERBASE_API_KEY,
-          model: "google/gemini-2.5-flash",
-          disablePino: true,
-          // logging: true,
-
-        }
-      )
+      stagehand = new Stagehand({
+        env: "BROWSERBASE",
+        apiKey: process.env.BROWSERBASE_API_KEY,
+        model: "google/gemini-2.5-flash",
+        disablePino: true,
+      })
       await stagehand.init()
       return stagehand
     }
 
-    for (const id of order) {
+    const steps: RunStep[] = order.map((id) => ({
+      id,
+      status: "pending",
+    }))
+    metadata.set("steps", steps)
+
+    const outputs: Record<string, unknown> = {}
+
+    for (let i = 0; i < order.length; i++) {
+      const id = order[i]
       const node = byId.get(id)!
       logger.log(`Running step: ${node.data.title}`)
-      // TODO: actually execute the node instead of just logging it, and report
-      // its progress so the UI can watch the run live.
-      const executor = NodeExecutors[node.data.type]
-      if (executor) await executor({
-        values: node.data.values,
-        getStagehand
-      })
+
+      steps[i].status = "running"
+      metadata.set("steps", steps)
+      await metadata.flush()
+
+      const interpolatedValues: Record<string, string> = {}
+      for (const [key, value] of Object.entries(node.data.values || {})) {
+        interpolatedValues[key] = interpolate(value, outputs)
+      }
+
+      try {
+        const executor = NodeExecutors[node.data.type]
+        if (executor) {
+          outputs[id] = await executor({
+            values: interpolatedValues,
+            getStagehand,
+          })
+        }
+        steps[i].status = "done"
+        metadata.set("steps", steps)
+      } catch (error) {
+        steps[i].status = "failed"
+        metadata.set("steps", steps)
+        await metadata.flush()
+        await stagehand?.close()
+        throw error
+      }
     }
 
     await stagehand?.close()
 
-    return { steps: order.length }
+    return { steps }
   },
 })

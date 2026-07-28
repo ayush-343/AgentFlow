@@ -1,25 +1,34 @@
 # AgentFlow
 
-**AgentFlow** is a modern, real-time collaborative workflow automation platform built with Next.js, React Flow, Liveblocks, Trigger.dev, Neon PostgreSQL, and Clerk.
+**AgentFlow** is a modern, real-time collaborative workflow automation platform built with Next.js, React Flow, Liveblocks, Trigger.dev, Stagehand, Browserbase, Neon PostgreSQL, and Clerk.
 
 ---
 
 ## 🌟 Key Features
 
-- **⚡ Visual Workflow Editor**: Interactive node-based canvas built with `@xyflow/react` (React Flow) featuring custom step nodes (`start` trigger, `open-url` action, etc.).
-- **👥 Real-Time Multiplayer Collaboration**: Powered by **Liveblocks**, supporting live multiplayer presence, real-time node/edge state synchronization (`useLiveblocksFlow`), and collaborative user cursors.
-- **⚙️ Background Workflow Execution**: Integrated with **Trigger.dev v4** for executing workflow tasks in the background with real-time execution log streaming (`useRealtimeRun`).
-- **🔐 Auth & Multi-Tenancy**: Complete authentication and organization management using **Clerk** (with organization switcher & multi-tenant routing).
-- **🗄️ Serverless Relational Database**: Schema migrations and data operations backed by **Neon PostgreSQL** and **Drizzle ORM**.
-- **🎨 Modern UI & Dark Mode**: Sleek dark/light theme support using **Tailwind CSS v4**, **shadcn/ui**, and **next-themes**.
+- **⚡ Visual Workflow Editor**: Interactive node-based canvas built with `@xyflow/react` (React Flow) featuring custom trigger & action step nodes.
+- **🤖 Stagehand AI Browser Automation**: Multi-step web automation powered by **Stagehand V3** and **Browserbase** cloud browsers:
+  - `Start`: Workflow trigger entry point.
+  - `Open URL`: Navigates to a web page.
+  - `Act`: AI-driven actions (click, type, scroll) using `stagehand.act`.
+  - `Extract`: Data extraction using `stagehand.extract`.
+  - `Observe`: Element and action discovery using `stagehand.observe`.
+  - `Agent`: Autonomous multi-step web task execution using `stagehand.agent`.
+- **🔗 Upstream Data Interpolation**: Dynamically reference upstream node outputs using `{{ nodeId.field }}` tokens. Includes a **Connections** panel in the inspector for one-click token insertion into fields.
+- **📡 Real-Time Step Progress Streaming**: Real-time canvas node status indicators (spinners, blue running borders, red failure borders) powered by **Trigger.dev v4** metadata streaming and scoped public access tokens.
+- **👥 Real-Time Multiplayer Collaboration**: Powered by **Liveblocks**, supporting live presence, synchronized graph state (`useLiveblocksFlow`), and collaborative user cursors.
+- **🔐 Auth & Multi-Tenancy**: Organization management and authentication using **Clerk** (with organization switcher & multi-tenant routing).
+- **🗄️ Serverless Relational Database**: Schema management and data operations backed by **Neon PostgreSQL** and **Drizzle ORM**.
+- **🎨 Modern UI & Dark Mode**: Modern theme support using **Tailwind CSS v4**, **shadcn/ui**, and **next-themes**.
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) & [React 19](https://react.dev/)
+- **Browser Automation**: [Stagehand V3](https://stagehand.dev/) & [Browserbase](https://browserbase.com/)
 - **State & Collaboration**: [@liveblocks/react-flow](https://liveblocks.io/) & [@xyflow/react](https://reactflow.dev/)
-- **Background Tasks**: [@trigger.dev/sdk](https://trigger.dev/) (v4)
+- **Background Execution & Realtime**: [@trigger.dev/sdk](https://trigger.dev/) (v4)
 - **Database**: [Neon Postgres](https://neon.tech/) & [Drizzle ORM](https://orm.drizzle.team/)
 - **Auth**: [Clerk](https://clerk.com/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), Lucide Icons
@@ -33,18 +42,19 @@
 AgentFlow/
 ├── app/                        # Next.js App Router routes
 │   ├── (dashboard)/            # Dashboard layout & workflow routes
-│   │   └── workflows/[id]/     # Individual workflow canvas & execution logs page
+│   │   └── workflows/[id]/     # Workflow canvas, inspector & execution logs page
 │   ├── choose-organization/    # Clerk organization selector
 │   └── (auth)/                 # Sign-in & Sign-up routes
 ├── components/                 # Shared UI primitives (shadcn/ui)
 ├── features/
 │   └── workflows/              # Workflow domain logic & components
-│       ├── actions.ts          # Server actions for workflow CRUD
-│       ├── components/         # Canvas, Step Node, Room, Workflow Shell, Realtime Logs
-│       ├── lib/                # Graph validation & topological sorting engine
-│       ├── nodes/              # Node registry & custom step node definitions
+│       ├── actions.ts          # Server actions for workflow CRUD & execution
+│       ├── components/         # Canvas, Step Node, Inspector, Realtime Provider, Logs
+│       ├── hooks/              # Upstream connections & state hooks
+│       ├── lib/                # Graph validation, interpolation & topological engine
+│       ├── nodes/              # Node registry, stagehand executors (open-url, act, extract, observe, agent)
 │       ├── tasks/              # Trigger.dev background task definitions (run-workflow)
-│       └── data.ts             # Mock & database query helpers
+│       └── data.ts             # Database query helpers
 ├── db/                         # Drizzle database schemas & migrations
 ├── trigger.config.ts           # Trigger.dev background task configuration
 └── liveblocks.config.ts        # Liveblocks room & presence configuration
@@ -78,9 +88,13 @@ DATABASE_URL_UNPOOLED="postgresql://..."
 
 # Liveblocks Realtime Collaboration
 NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY=pk_dev_...
+LIVEBLOCKS_SECRET_KEY=sk_dev_...
 
 # Trigger.dev Background Execution
 TRIGGER_SECRET_KEY=tr_dev_...
+
+# Browserbase Cloud Browser
+BROWSERBASE_API_KEY=bb_live_...
 ```
 
 ### Installation & Development
@@ -113,7 +127,7 @@ TRIGGER_SECRET_KEY=tr_dev_...
 
 - **Type Check**:
   ```bash
-  npm run typecheck
+  npx tsc --noEmit
   ```
 - **Production Build**:
   ```bash

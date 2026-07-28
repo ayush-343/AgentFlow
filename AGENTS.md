@@ -1,33 +1,66 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+## Browserbase observability
+
+Session recordings, replays, live view, and logs come from the core Browserbase SDK
+(`@browserbasehq/sdk`) — not Stagehand. Before building any observability feature, consult
+Browserbase's observability docs:
+https://docs.browserbase.com/platform/browser/observability
+
+Session replay specifically — retrieving a session's recording as an HLS playlist — is
+documented here:
+https://docs.browserbase.com/platform/browser/observability/session-replay
+The retrieval needs the secret API key, so it must be proxied server-side.
+
+# Adding a workflow node
+
+Three edits, all under `features/workflows/nodes/`:
+
+1. the impl file (e.g. `open-url.ts`) — the node's executor logic,
+2. register it in `node-executors.ts` — the `satisfies` contract makes a missing
+   executor a compile error for action nodes,
+3. add its manifest entry in `node-registry.ts` — kind, label, icon, accent, its
+   input `fields`, and the `outputs` downstream nodes can reference.
+
+The run task and the canvas step node are registry-driven — never touch them to add
+a node.
+
+# ReactFlow — don't trust training data
+
+This project uses ReactFlow (React Flow / `@xyflow/react`) for the canvas. Its
+APIs, components, hooks, and props change across versions and may differ from
+your training data. Before writing or changing any ReactFlow code, fetch and
+consult the official LLM docs index at https://reactflow.dev/llms.txt and follow
+the linked pages relevant to what you're building. Do not rely on memory for
+component names, props, hook signatures, or usage patterns.
+
+# JSX text escaping
+
+Escape apostrophes and quotes in JSX text content — raw `'` and `"` trip the
+`react/no-unescaped-entities` lint rule. Use `&apos;` for apostrophes and
+`&quot;` for quotes (e.g. `you&apos;re`, `doesn&apos;t`). This applies only to
+literal text between JSX tags, not to string attribute values or JS strings.
 
 # Database types
 
-Derive database types from the Drizzle schema - never hand-write custom or partial shapes for table rows. Export 'typeof table.$inferSelect' (and '$inferInsert' when needed) from 'lib/schemats' and import it. When a consumer needs only some columns, narrow with 'Pick<Row, ...>' / 'Omit<Row, ...>' rather than redeclaring a literal type. Don't add an insert type where 'db.insert(...).values()' already enforces the shape.
-
-
-# JSX Entity Escaping
-
-Always escape unescaped entities like apostrophes (`'`), quotes (`"`), and angle brackets in JSX text children using HTML entities (`&apos;`, `&quot;`, `&lsquo;`, `&rsquo;`) or string expressions (e.g. `{"'"}`, `{"doesn't"}`) to prevent `react/no-unescaped-entities` errors.
+Derive database types from the Drizzle schema — never hand-write custom or partial
+shapes for table rows. Export `typeof table.$inferSelect` (and `$inferInsert` when
+needed) from `lib/schema.ts` and import it. When a consumer needs only some
+columns, narrow with `Pick<Row, ...>` / `Omit<Row, ...>` rather than redeclaring a
+literal type. Don't add an insert type where `db.insert(...).values()` already
+enforces the shape.
 
 <!-- TRIGGER.DEV SKILLS START -->
+
 ## Trigger.dev agent skills
 
 This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-chat-agent`, `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`.
 <!-- TRIGGER.DEV SKILLS END -->
-
-
-# React Flow API & Usage
-
-Whenever working with React Flow (or `@xyflow/react`) APIs, components, hooks, or general usage, DO NOT rely on training data. Always search and reference the authoritative documentation at `https://reactflow.dev/llms.txt`.
-
-
-
-
 
 # Stagehand Project
 
