@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server"
-import NotFound, { notFound } from "next/navigation"
+import { notFound } from "next/navigation"
 
 import { getWorkflow } from "@/features/workflows/data"
 
