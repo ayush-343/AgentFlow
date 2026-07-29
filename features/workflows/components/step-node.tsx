@@ -17,7 +17,7 @@ function StepNodeComponent({ id, data, selected }: NodeProps<StepNodeType>) {
   const fields = def.fields.filter((field) => values[field.key])
 
   const { steps, isLive } = useLatestRunSteps()
-  const step = steps.find((s) => s.id === id)
+  const step = steps.find((s) => (s.nodeId ?? (s as any).id) === id)
 
   // Only treat as running while the run is actually live
   const isRunning = isLive && step?.status === "running"

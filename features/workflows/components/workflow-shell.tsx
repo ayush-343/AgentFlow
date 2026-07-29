@@ -1,26 +1,18 @@
-"use client"
-
-import { useState } from "react"
-
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import { Canvas } from "@/features/workflows/components/canvas"
-import { RightSidebar } from "@/features/workflows/components/right-sidebar"
-import { WorkflowLogs } from "@/features/workflows/components/workflow-logs"
+
+import { Canvas } from "./canvas"
+import { ConsolePanel } from "./console-panel"
+import { RightSidebar } from "./right-sidebar"
 
 interface WorkflowShellProps {
   workflowId: string
 }
 
 export function WorkflowShell({ workflowId }: WorkflowShellProps) {
-  const [activeRun, setActiveRun] = useState<{
-    runId: string
-    publicAccessToken: string
-  } | null>(null)
-
   return (
     <ResizablePanelGroup orientation="horizontal" className="size-full">
       <ResizablePanel minSize="30rem">
@@ -30,25 +22,13 @@ export function WorkflowShell({ workflowId }: WorkflowShellProps) {
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel defaultSize="8rem" minSize="6rem">
-            {activeRun ? (
-              <WorkflowLogs
-                runId={activeRun.runId}
-                publicAccessToken={activeRun.publicAccessToken}
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center p-4">
-                <span className="text-sm font-medium text-muted-foreground">
-                  No active run logs. Click &quot;Run&quot; to trigger workflow
-                  task.
-                </span>
-              </div>
-            )}
+            <ConsolePanel />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize="16rem" minSize="14rem" maxSize="36rem">
-        <RightSidebar workflowId={workflowId} onRunTriggered={setActiveRun} />
+        <RightSidebar workflowId={workflowId} />
       </ResizablePanel>
     </ResizablePanelGroup>
   )

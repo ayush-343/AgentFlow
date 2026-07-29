@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 import { useReactFlow, useStore } from "@xyflow/react"
-import { MoreHorizontal, Play, Trash2 } from "lucide-react"
+import { Lock, MoreHorizontal, Play, Square, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -23,14 +23,17 @@ import { Label } from "@/components/ui/label"
 import { ResizablePanel } from "@/components/ui/resizable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
 
 import {
+  cancelWorkflowRunAction,
   deleteWorkflowAction,
   runWorkflowAction,
 } from "@/features/workflows/actions"
-import { validateGraph } from "../lib/validate-graph"
-import { useUpstreamConnections } from "@/features/workflows/hooks"
+import { NodeIcon } from "@/features/workflows/components/node-icon"
+import { useLiveRun } from "@/features/workflows/components/workflow-runs-provider"
+import { useProPlan } from "@/features/workflows/hooks/use-pro-plan"
+import { useUpstreamConnections } from "@/features/workflows/hooks/use-upstream-connections"
+import { validateGraph } from "@/features/workflows/lib/validate-graph"
 import {
   nodeRegistry,
   type NodeDefinition,
@@ -48,24 +51,6 @@ import {
 // ---------------------------------------------------------------------------
 // Shared pieces — used by both the Toolbar and the Editor.
 // ---------------------------------------------------------------------------
-
-// The accent-colored icon chip, mirroring the node on the canvas.
-function NodeIcon({ type, className }: { type: NodeType; className?: string }) {
-  const def = nodeRegistry[type]
-  if (!def) return null
-  const Icon = def.icon
-  return (
-    <span
-      className={cn(
-        "flex size-6 shrink-0 items-center justify-center rounded-md",
-        def.accent,
-        className
-      )}
-    >
-      <Icon className="size-3.5" />
-    </span>
-  )
-}
 
 // A titled, scrollable panel. Each tab renders its content inside one.
 function Section({
@@ -103,7 +88,9 @@ function Field({
   field: NodeField
   value: string
   onChange: (value: string) => void
-  onFocus?: () => void
+  // Fires when the field gains focus, so the Connections chips know which
+  // field a clicked token should land in.
+  onFocus: () => void
 }) {
   if (field.multiline) {
     return (
@@ -131,12 +118,12 @@ function Field({
 // The Editor tab: one input per field on the selected node, or an empty state.
 function Inspector({ node }: { node: StepNodeType | undefined }) {
   const { updateNodeData } = useReactFlow<StepNodeType>()
-  const upstreamOutputs = useUpstreamConnections(node)
-  const [focusedFieldKey, setFocusedFieldKey] = useState<string | null>(null)
-
-  useEffect(() => {
-    setFocusedFieldKey(null)
-  }, [node?.id])
+  // Outputs of every node upstream of the selected one, as insertable {{ }}
+  // tokens. Empty when nothing feeds into this node.
+  const connections = useUpstreamConnections(node)
+  // The field a clicked chip inserts into — whichever was focused most recently.
+  // Reset per selected node since this component is keyed by node id.
+  const [activeFieldKey, setActiveFieldKey] = useState<string | null>(null)
 
   if (!node) {
     return (
@@ -149,71 +136,57 @@ function Inspector({ node }: { node: StepNodeType | undefined }) {
   const { type, title, values } = node.data
   const def: NodeDefinition = nodeRegistry[type]
 
-  const handleChipClick = (token: string) => {
-    const targetKey =
-      focusedFieldKey && def.fields.some((f) => f.key === focusedFieldKey)
-        ? focusedFieldKey
-        : def.fields[0]?.key
+  // Untouched fields fall back to the first one, so a chip always has a home.
+  const targetKey = activeFieldKey ?? def.fields[0]?.key
 
+  const insertToken = (token: string) => {
     if (!targetKey) return
-
-    const currentValue = values[targetKey] ?? ""
-    const newValue = currentValue ? `${currentValue} ${token}` : token
-
     updateNodeData(node.id, {
-      values: {
-        ...values,
-        [targetKey]: newValue,
-      },
+      values: { ...values, [targetKey]: (values[targetKey] ?? "") + token },
     })
   }
 
   return (
     <Section title={title} icon={<NodeIcon type={type} />}>
-      <div className="flex flex-col gap-4 p-3">
-        <div className="flex flex-col gap-3">
-          {def.fields.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No properties</p>
-          ) : (
-            def.fields.map((field) => (
-              <div key={field.key} className="flex flex-col gap-1.5">
-                <Label htmlFor={field.key} className="text-xs">
-                  {field.label}
-                  {field.required && (
-                    <span className="ml-0.5 text-destructive">*</span>
-                  )}
-                </Label>
-                <Field
-                  field={field}
-                  value={values[field.key] ?? ""}
-                  onFocus={() => setFocusedFieldKey(field.key)}
-                  onChange={(value) => {
-                    setFocusedFieldKey(field.key)
-                    updateNodeData(node.id, {
-                      values: { ...values, [field.key]: value },
-                    })
-                  }}
-                />
-              </div>
-            ))
-          )}
-        </div>
+      <div className="flex flex-col gap-3 p-3">
+        {def.fields.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No properties</p>
+        ) : (
+          def.fields.map((field) => (
+            <div key={field.key} className="flex flex-col gap-1.5">
+              <Label htmlFor={field.key} className="text-xs">
+                {field.label}
+                {field.required && <span className="text-destructive">*</span>}
+              </Label>
+              <Field
+                field={field}
+                value={values[field.key] ?? ""}
+                onFocus={() => setActiveFieldKey(field.key)}
+                onChange={(value) => {
+                  updateNodeData(node.id, {
+                    values: { ...values, [field.key]: value },
+                  })
+                }}
+              />
+            </div>
+          ))
+        )}
 
-        {upstreamOutputs.length > 0 && (
-          <div className="flex flex-col gap-2 border-t border-border pt-3">
-            <Label className="text-xs font-semibold text-muted-foreground">
-              Connections
-            </Label>
+        {/* Available upstream outputs — click to drop a token into the last
+            focused field (or the first field if none has been touched). */}
+        {connections.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">Connections</Label>
             <div className="flex flex-wrap gap-1.5">
-              {upstreamOutputs.map((output) => (
+              {connections.map((connection) => (
                 <button
-                  key={`${output.nodeId}-${output.path}`}
+                  key={connection.token}
                   type="button"
-                  onClick={() => handleChipClick(output.token)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground shadow-2xs hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                  onClick={() => insertToken(connection.token)}
+                  className="flex max-w-full items-center gap-1.5 rounded-md border border-border bg-card px-1.5 py-1 text-xs hover:bg-accent"
                 >
-                  <NodeIcon type={output.type} className="size-4 rounded-xs [&_svg]:size-2.5" />
-                  <span>{output.label}</span>
+                  <NodeIcon type={connection.type} className="size-4" />
+                  <span className="truncate">{connection.label}</span>
                 </button>
               ))}
             </div>
@@ -237,6 +210,11 @@ const sections: { kind: StepNodeKind; label: string }[] = [
 // Every node type from the registry, filtered into the groups below.
 const definitions = Object.values(nodeRegistry)
 
+// Node types that only orgs on the Pro plan can add. The Agent node is our most
+// expensive node, so it's gated; every other node stays free to keep workflow
+// building open to everyone.
+const premiumNodes = new Set<NodeType>(["agent"])
+
 // The Toolbar tab: a button per node type that adds it to the canvas.
 function Palette() {
   // The shared React Flow store (lifted to a provider above the canvas and this
@@ -245,16 +223,27 @@ function Palette() {
   // The pane's measured size, used to find the center of the current view.
   const width = useStore((s) => s.width)
   const height = useStore((s) => s.height)
+  // Whether the active org is on Pro, plus a way to send them to upgrade. Gates
+  // the premium nodes below.
+  const { isLoaded, isPro, goToUpgrade } = useProPlan()
+
+  // A premium node is locked until the plan check has loaded and confirms Pro.
+  // We wait for `isLoaded` so a Pro org never flashes a locked state on mount.
+  const isLocked = (type: NodeType) =>
+    premiumNodes.has(type) && isLoaded && !isPro
 
   const add = (type: NodeType) => {
+    // Premium nodes route to upgrade instead of being added for non-pro orgs.
+    if (isLocked(type)) {
+      goToUpgrade()
+      return
+    }
+
     const def = nodeRegistry[type]
     const nodes = getNodes()
 
     // Only one trigger is allowed — a workflow has a single entry point.
-    if (
-      def.kind === "trigger" &&
-      nodes.some((n) => n.data.kind === "trigger")
-    ) {
+    if (def.kind === "trigger" && nodes.some((n) => n.data.kind === "trigger")) {
       toast.error("A workflow can only have one trigger.")
       return
     }
@@ -300,17 +289,25 @@ function Palette() {
             <AccordionContent className="flex flex-col gap-0.5">
               {definitions
                 .filter((def) => def.kind === section.kind)
-                .map((def) => (
-                  <Button
-                    key={def.type}
-                    variant="ghost"
-                    onClick={() => add(def.type as NodeType)}
-                    className="justify-start gap-2.5 px-1.5 text-xs"
-                  >
-                    <NodeIcon type={def.type as NodeType} />
-                    {def.label}
-                  </Button>
-                ))}
+                .map((def) => {
+                  const type = def.type as NodeType
+                  const locked = isLocked(type)
+                  return (
+                    <Button
+                      key={def.type}
+                      variant="ghost"
+                      onClick={() => add(type)}
+                      title={locked ? "Upgrade to Pro to add this node" : undefined}
+                      className="justify-start gap-2.5 px-1.5 text-xs"
+                    >
+                      <NodeIcon type={type} />
+                      {def.label}
+                      {locked && (
+                        <Lock className="ml-auto size-3.5 text-muted-foreground" />
+                      )}
+                    </Button>
+                  )
+                })}
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -357,10 +354,37 @@ function ActionsMenu({ workflowId }: { workflowId: string }) {
   )
 }
 
-// Kicks off a run of the current workflow.
+// Toggles between running the current workflow and stopping the run in flight.
+// While a run is live it becomes a Stop button that cancels that run; otherwise
+// it validates the graph and kicks off a new run.
 function RunButton({ workflowId }: { workflowId: string }) {
   const { getNodes, getEdges } = useReactFlow<StepNodeType>()
   const [isPending, startTransition] = useTransition()
+  // The run in flight, if any. At most one is live at a time, so its presence
+  // decides which mode the button is in.
+  const liveRun = useLiveRun()
+
+  if (liveRun) {
+    return (
+      <Button
+        size="sm"
+        variant="destructive"
+        disabled={isPending}
+        onClick={() => {
+          startTransition(async () => {
+            try {
+              await cancelWorkflowRunAction(liveRun.id)
+            } catch {
+              toast.error("Couldn't stop the run.")
+            }
+          })
+        }}
+      >
+        <Square fill="currentColor" />
+        Stop
+      </Button>
+    )
+  }
 
   return (
     <Button
@@ -390,29 +414,18 @@ function RunButton({ workflowId }: { workflowId: string }) {
 // The sidebar itself — header on top, then the Toolbar / Editor tabs.
 // ---------------------------------------------------------------------------
 
-interface RightSidebarProps {
-  workflowId: string
-  onRunTriggered?: (
-    run: { runId: string; publicAccessToken: string } | null
-  ) => void
-}
-
-export function RightSidebar({
-  workflowId,
-  onRunTriggered: _onRunTriggered,
-}: RightSidebarProps) {
+export function RightSidebar({ workflowId }: { workflowId: string }) {
   const [tab, setTab] = useState("toolbar")
 
   // TODO: read the currently selected node from React Flow.
-  const selected = useStore((s) => s.nodes.find((n) => n.selected)) as
-    StepNodeType | undefined
+  const selected = useStore((s) => s.nodes.find((n) => n.selected)) as StepNodeType | undefined
 
-  // Auto-switch to the Editor tab when a node is selected.
-  useEffect(() => {
-    if (selected?.id) {
-      setTab("editor")
-    }
-  }, [selected?.id])
+  // TODO: auto-switch to the Editor tab when the selection changes.
+  const [prevSelectedId, setPrevSelectedId] = useState(selected?.id)
+  if (selected && selected.id !== prevSelectedId) {
+    setPrevSelectedId(selected.id)
+    setTab("editor")
+  }
 
   return (
     <ResizablePanel
@@ -445,7 +458,7 @@ export function RightSidebar({
           <Palette />
         </TabsContent>
         <TabsContent value="editor" className="flex min-h-0 flex-col">
-          <Inspector node={selected} />
+          <Inspector key={selected?.id} node={selected} />
         </TabsContent>
       </Tabs>
     </ResizablePanel>
